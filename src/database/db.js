@@ -2,7 +2,26 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'acxiom_crm.db');
+const bundledDbPath = path.join(__dirname, 'acxiom_crm.db');
+const runtimeDbPath = process.env.DB_PATH || '/tmp/acxiom_crm.db';
+
+function resolveDatabasePath() {
+  if (process.env.DB_PATH) {
+    return process.env.DB_PATH;
+  }
+
+  try {
+    fs.accessSync(path.dirname(bundledDbPath), fs.constants.W_OK);
+    return bundledDbPath;
+  } catch (error) {
+    if (!fs.existsSync(runtimeDbPath) && fs.existsSync(bundledDbPath)) {
+      fs.copyFileSync(bundledDbPath, runtimeDbPath);
+    }
+    return runtimeDbPath;
+  }
+}
+
+const dbPath = resolveDatabasePath();
 const db = new Database(dbPath);
 
 // Enable foreign keys
